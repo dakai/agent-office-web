@@ -23,16 +23,21 @@ const PAGE = readFileSync(new URL("./index.html", import.meta.url))
 
 const scanner = createScanner({ days: 2, max: 40 })
 
+// Agents title their sessions with a Nerd Font glyph (󰦑, …) that a browser
+// has no font for and draws as an empty box: private-use characters go
+const PUA = /[\uE000-\uF8FF]|[\u{F0000}-\u{FFFFD}]|[\u{100000}-\u{10FFFD}]/gu
+const plain = (s) => String(s || "").replace(PUA, "").replace(/\s{2,}/g, " ").trim()
+
 // a session as the page wants it (the plugin's own mapping, office.hooks.mjs)
 function fromFiles(s, text) {
   return {
     key: s.key, source: "files", agent: s.agent, session: s.id, cwd: s.cwd, project: s.project,
     // with text off the title falls back to the folder and the step to the
     // tool's name: a prompt and a command line can both carry secrets
-    title: text ? (s.title || s.project || "") : (s.project || ""),
-    query: text ? s.query : "", model: s.model,
+    title: plain(text ? (s.title || s.project || "") : s.project),
+    query: text ? plain(s.query) : "", model: s.model,
     started: s.started, updated: Math.max(s.updated || 0, s.touched || 0), touched: s.touched,
-    phase: s.phase || "done", step: text ? s.step : (s.stepName || ""), reply: text ? s.reply : "", error: text ? s.error : "",
+    phase: s.phase || "done", step: plain(text ? s.step : s.stepName), reply: text ? plain(s.reply) : "", error: text ? plain(s.error) : "",
     pendingSince: s.pending?.[0]?.at || 0, turns: s.turns,
   }
 }
